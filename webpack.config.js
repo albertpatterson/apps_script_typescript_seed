@@ -23,55 +23,66 @@ class StripIFFEPlugin {
 }
 
 class RunTestsPlugin {
-  apply(compiler) {
-    compiler.hooks.afterEmit.tapAsync('RunTestsPlugin', (_, callback) => {
-      webpack(testConfig, (err, stats) => {
-        if (err) {
-          callback(err);
-          return;
-        }
+  constructor(watchTests = false) {
+    this.watchTests = watchTests;
+    this.testingAndWatching = false;
+  }
 
-        callback();
-      });
+  apply(compiler) {
+    compiler.hooks.afterEmit.tap('RunTestsPlugin', (_) => {
+      if (!this.testingAndWatching) {
+        this.testingAndWatching = this.watchTests;
+        const config = {...testConfig, watch: this.watchTests};
+        webpack(config, (err, stats) => {
+          if (err) {
+            console.error(err);
+            return;
+          }
+        });
+      }
     });
   }
 }
 
-module.exports = {
-  entry: './src/index.ts',
-  module: {
-    rules: [
-      {
-        test: /\.tsx?$/,
-        loader: 'ts-loader',
-        exclude: /node_modules/,
-      },
-    ],
-  },
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
-  },
-  plugins: [
-    new CopyPlugin({
-      patterns: [
+module.exports = (env, argv) => {
+  const watchTests = Boolean(argv.watch);
+
+  return {
+    entry: './src/index.ts',
+    module: {
+      rules: [
         {
-          from: './src/config/.clasp.json',
-          to: '.clasp.json',
-          noErrorOnMissing: true,
-        },
-        {
-          from: './src/config/appsscript.json',
-          to: 'appsscript.json',
-          noErrorOnMissing: true,
+          test: /\.tsx?$/,
+          loader: 'ts-loader',
+          exclude: /node_modules/,
         },
       ],
-    }),
-    new StripIFFEPlugin(),
-    new RunTestsPlugin(),
-  ],
-  output: {
-    filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist'),
-  },
-  optimization: {minimize: false},
-};
+    },
+    resolve: {
+      extensions: ['.tsx', '.ts', '.js'],
+    },
+    plugins: [
+      new CopyPlugin({
+        patterns: [
+          {
+            from: './src/config/.clasp.json',
+            to: '.clasp.json',
+            noErrorOnMissing: true,
+          },
+          {
+            from: './src/config/appsscript.json',
+            to: 'appsscript.json',
+            noErrorOnMissing: true,
+          },
+        ],
+      }),
+      new StripIFFEPlugin(),
+      new RunTestsPlugin(watchTests),
+    ],
+    output: {
+      filename: 'bundle.js',
+      path: path.resolve(__dirname, 'dist'),
+    },
+    optimization: {minimize: false},
+  };
+}
