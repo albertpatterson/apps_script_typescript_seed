@@ -1,5 +1,5 @@
 import {getMessage} from './utils/utils';
 
-function onOpen() {
+export function onOpen() {
   Logger.log(getMessage());
 }

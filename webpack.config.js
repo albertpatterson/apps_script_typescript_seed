@@ -3,6 +3,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 const fs = require('fs');
 const webpack = require('webpack');
 const testConfig = require('./webpack.test.config');
+const build_constants = require('./build_utils/constants');
 
 class StripIFFEPlugin {
   apply(compiler) {
@@ -48,7 +49,7 @@ module.exports = (env, argv) => {
   const watchTests = Boolean(argv.watch);
 
   return {
-    entry: './src/index.ts',
+    entry: build_constants.INDEX_WRAPPER_PATH,
     module: {
       rules: [
         {

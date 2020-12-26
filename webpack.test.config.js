@@ -3,6 +3,7 @@ const glob = require('glob');
 const Mocha = require('mocha');
 const fs = require('fs');
 const util = require('util');
+const build_utils = require('./build_utils/build_utils');
 
 function getDistTestPath(subfolders = []) {
   return path.resolve.apply(null, [__dirname, 'dist_test', ...subfolders]);
@@ -30,21 +31,9 @@ const testFiles = glob.sync('**/*.test.ts')
                         return './' + element;
                       });
 
-
-function createDistTestDirIfNeeded(callback) {
-  // Check if the file exists in the current directory.
-  fs.access(DIST_TEST_PATH, fs.constants.F_OK, (err) => {
-    if (err) {
-      fs.mkdir(DIST_TEST_PATH, callback);
-      return;
-    }
-    callback();
-  });
-}
-
 class CreateTestTSConfigPlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tapAsync(
+    compiler.hooks.beforeCompile.tapAsync(
         'CreateTestTSConfigPlugin', (_, callback) => {
           const createTestTSConfig = () => {
             fs.readFile('./tsconfig.json', function(err, data) {
@@ -77,14 +66,14 @@ class CreateTestTSConfigPlugin {
             });
           };
 
-          createDistTestDirIfNeeded(createTestTSConfig);
+          build_utils.createDirIfNeeded(DIST_TEST_PATH, createTestTSConfig);
         });
   }
 }
 
 class RunMochaPlugin {
   apply(compiler) {
-    compiler.hooks.done.tap('RunMochaPlugin', (_) => {
+    compiler.hooks.afterEmit.tap('RunMochaPlugin', (_) => {
       const mocha = new Mocha({ui: 'bdd', reporter: 'list'});
       // remove from the cache so the test can be rerun
       delete require.cache[require.resolve(TEST_BUNDLE_PATH)]
