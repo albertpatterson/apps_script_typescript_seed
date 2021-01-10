@@ -1,5 +1,2 @@
-import {getMessage} from './utils/utils';
-
-export function onOpen() {
-  Logger.log(getMessage());
-}
+export * from './menus/menus';
+export * from './triggers/triggers';

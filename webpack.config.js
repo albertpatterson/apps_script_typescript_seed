@@ -15,7 +15,31 @@ class StripIFFEPlugin {
         }
 
         const lines = data.split('\n');
-        var keptLines = lines.slice(2, lines.length - 3).join('\n');
+
+        let firstConcatLine = null;
+        let wrapperConcatLine = null;
+
+        lines.forEach((line, index) => {
+          if (line === ';// CONCATENATED MODULE: ./build_utils/wrapper.ts') {
+            wrapperConcatLine = index;
+          } else if (
+              firstConcatLine === null &&
+              line.startsWith(';// CONCATENATED MODULE: ')) {
+            firstConcatLine = index;
+          }
+        });
+
+        if (firstConcatLine === null) {
+          throw new Error('did not find first concatenated module comment.');
+        }
+
+        if (wrapperConcatLine === null) {
+          throw new Error('did not find concatenated wrapper module comment.');
+        }
+
+        console.log({firstConcatLine, wrapperConcatLine});
+        const keptLines =
+            lines.slice(firstConcatLine, wrapperConcatLine + 1).join('\n');
 
         fs.writeFile('./dist/bundle.js', keptLines, callback);
       });
